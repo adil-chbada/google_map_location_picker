@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/services.dart' show rootBundle;
@@ -242,22 +243,20 @@ class MapPickerState extends State<MapPicker> {
 
   Future<Map<String, String?>> getAddress(LatLng? location) async {
     try {
-      final endpoint =
-          'https://maps.googleapis.com/maps/api/geocode/json?latlng=${location?.latitude},${location?.longitude}'
+      final endpoint = 'https://maps.googleapis.com/maps/api/geocode/json?latlng=${location?.latitude},${location?.longitude}'
           '&key=${widget.apiKey}&language=${widget.language}';
+      var headers;
+      if (kIsWeb) {
+        headers = [];
+      } else {
+        headers = await LocationUtils.getAppHeaders() as FutureOr<Map<String, String>?>;
+      }
+      final response = jsonDecode((await http.get(Uri.parse(endpoint), headers: headers)).body);
 
-      final response = jsonDecode((await http.get(Uri.parse(endpoint),
-              headers: await (LocationUtils.getAppHeaders() as FutureOr<Map<String, String>?>)))
-          .body);
-
-      return {
-        "placeId": response['results'][0]['place_id'],
-        "address": response['results'][0]['formatted_address']
-      };
+      return {"placeId": response['results'][0]['place_id'], "address": response['results'][0]['formatted_address']};
     } catch (e) {
       print(e);
     }
-
     return {"placeId": null, "address": null};
   }
 
